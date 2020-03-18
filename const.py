@@ -7,17 +7,17 @@ START_BOARD = ['0r', '0k', '0b', '0q', '0i', '0b', '0k', '0r',
                '**', '**', '**', '**', '**', '**', '**', '**',
                '**', '**', '**', '**', '**', '**', '**', '**',
                '1p', '1p', '1p', '1p', '1p', '1p', '1p', '1p',
-               '1r', '1k', '1b', '1q', '1i', '**', '**', '1r']
+               '1r', '1k', '1b', '1q', '1i', '1b', '1k', '1r']
 
 Castle = namedtuple('Castle', 'team length king_change rook_change move_clear check_clear')
 
 CASTLES = [
-    Castle(team='0',
-           length='short',
-           king_change=((5, 1), (7, 1)),
-           rook_change=((8, 1), (6, 1)),
-           move_clear=((6, 1), (7, 1)),
-           check_clear=((6, 1), (7, 1))),
+Castle(team='0',
+       length='short',
+       king_change=((5, 1), (7, 1)),
+       rook_change=((8, 1), (6, 1)),
+       move_clear=((6, 1), (7, 1)),
+       check_clear=((6, 1), (7, 1))),
     Castle(team='0',
            length='long',
            king_change=((5, 1), (3, 1)),

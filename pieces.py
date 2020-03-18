@@ -158,8 +158,9 @@ class King(Piece):
 class Pawn(Piece):
     ID = 'p'
 
-    def __init__(self, team, place):
+    def __init__(self, team, place, can_en_passant=(Place((1, 1)), Place((1, 1)), Place((1, 1)))):
         super().__init__(team, place, self.ID)
+        self.can_en_passant = can_en_passant
 
     def get_actions(self, board):
         goto = []
@@ -175,6 +176,7 @@ class Pawn(Piece):
                 goto.append(plc)
             else:
                 break
+
         for plc in (Place((x + 1, y + 1 * sign)), Place((x - 1, y + 1 * sign))):
             if self.enemy_at(board, plc):
                 attack.append(plc)

@@ -22,6 +22,19 @@ class Board:
     def enemy(self):
         return '1' if self.team == '0' else '0'
 
+    @property
+    def is_mated(self):
+        if not self.is_checked:
+            return False
+        else:
+            for piece in self:
+                if piece.team == self.team:
+                    for c in range(len(self)):
+                        if self.attempt_move(piece.place, Place(c)):
+                            return False
+            else:
+                return True
+
     def switch_team(self):
         self.team = self.enemy
 
@@ -60,11 +73,15 @@ class Board:
     def enemy_at(self, place):
         return self[place].team == self.enemy
 
-    def move(self, src, tgt, end_turn=False):
+    def move(self, src, tgt, remove=None, end_turn=False):
+        if end_turn: self.set_en_passant(src, tgt)
+
         piece = self[src]
         self[src] = EmptyPiece('*', src)
         piece.place = tgt
         self[tgt] = piece
+        if remove:
+            self[remove] = EmptyPiece('*', remove)
         if end_turn:
             piece.moved = True
             self.selected = None
@@ -80,9 +97,15 @@ class Board:
         piece = self[src]
         mock_board = self.copy()
         mvs, atks = piece.get_actions(mock_board)
-        mock_board.move(src, tgt)
 
-        if mock_board.is_checked():
+        if piece.id == 'p' and src == piece.can_en_passant[0] and tgt == piece.can_en_passant[1]:
+            remove = piece.can_en_passant[2]
+            mock_board.move(src, tgt, remove=remove)
+            if not mock_board.is_checked:
+                self.move(src, tgt, remove, end_turn=True)
+
+        mock_board.move(src, tgt)
+        if mock_board.is_checked:
             return False
         else:
             for plc in mvs + atks:
@@ -94,6 +117,7 @@ class Board:
             else:
                 return False
 
+    @property
     def is_checked(self):
         for piece in self:
             if piece.team == self.enemy:
@@ -113,7 +137,7 @@ class Board:
                 for check in castle.check_clear:
                     mock_board = self.copy()
                     mock_board.move(castle.king_change[0], Place(check))
-                    if mock_board.is_checked():
+                    if mock_board.is_checked:
                         return False if do_if_possible else None
                 else:
                     if do_if_possible:
@@ -122,23 +146,51 @@ class Board:
                     else:
                         return castle
 
+    def set_en_passant(self, src, tgt):
+        piece = self[src]
+        src_x, src_y = src.coords
+        tgt_x, tgt_y = tgt.coords
+        if piece.id == 'p' and abs(tgt_y - src_y) == 2:
+            for addx, addy in ((1, 0), (-1, 0)): #TODO refactor
+                plc = Place((tgt_x + addx, tgt_y + addy))
+                if self.inside_at(plc) and str(self[plc]) == f'{self.enemy}p':
+                    self[plc].can_en_passant = (plc, Place((src_x, (tgt_y + src_y) // 2)), tgt) #GOTO; ATTACK
+
+    def update_board(self, plc):
+        clicked_place = plc
+        clicked_piece = self[clicked_place]
+        if clicked_piece.team == self.team:
+            self.selected = clicked_place
+        elif clicked_place == self.selected:
+            self.selected = None
+        elif self.selected is not None:
+            did_castle = self.attempt_castle(self.selected, clicked_place, do_if_possible=True)
+            if not did_castle:
+                self.attempt_move(self.selected, clicked_place, do_if_possible=True)
+
 
 class VisualBoard(Board):
     WHITE = (255, 255, 255)
     BLACK = (45, 90, 181)
     SELECTED_COLOR = (235, 249, 43)
 
-    def __init__(self, board_list, screen, size):
+    def __init__(self, board_list, screen, size, should_change_seats=True):
         super().__init__(self.create_board(board_list))
         self.screen = screen
         self.size = size
         self.square_size = size // 8
         self.surface = pg.Surface((self.size, self.size)).convert()
         self.color = itertools.cycle((self.WHITE, self.BLACK))
+        self.should_change_seats = should_change_seats
+
+    @property
+    def rotation_deg(self):
+        return 0 if self.team == '1' else 180
 
     def blit_piece(self, place, pixel_coords):
         img = pg.image.load(f'resources/{self[place]}.png').convert_alpha()
-        piece = pg.transform.scale(img, (self.square_size, self.square_size))
+        piece = pg.transform.scale(pg.transform.rotate(img, self.rotation_deg),
+                                          (self.square_size, self.square_size))
         self.surface.blit(piece, pixel_coords)
 
     def blit_all(self):
@@ -160,20 +212,8 @@ class VisualBoard(Board):
                 next(self.color)
             else:
                 x += self.square_size
-        self.screen.blit(self.surface, (0, 0))
+        self.screen.blit(pg.transform.rotate(self.surface, self.rotation_deg), (0, 0))
         return squares
-
-    def update_visual(self, square_num):
-        clicked_place = Place(square_num)
-        clicked_piece = self[clicked_place]
-        if clicked_piece.team == self.team:
-            self.selected = clicked_place
-        elif clicked_place == self.selected:
-            self.selected = None
-        elif self.selected is not None:
-            did_castle = self.attempt_castle(self.selected, clicked_place, do_if_possible=True)
-            if not did_castle:
-                self.attempt_move(self.selected, clicked_place, do_if_possible=True)
 
 
 

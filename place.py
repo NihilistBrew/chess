@@ -4,28 +4,26 @@ from string import ascii_lowercase
 class Place:
     notation = dict(zip(ascii_lowercase, range(1, 9)))
 
-    def __init__(self, obj, square_size=None):
+    def __init__(self, obj, en_passant=False):
         if type(obj) is int:
             self.idx = obj
             self.coords = self.idx_to_coords(obj)
             self.notation = self.coords_to_notation(self.coords)
-            self.pcoords = self.coords_to_pixels(self.coords, square_size) if square_size is not None else None
 
         elif type(obj) is tuple:
             self.coords = obj
             self.idx = self.coords_to_idx(obj)
             self.notation = self.coords_to_notation(obj)
-            self.pcoords = self.coords_to_pixels(obj, square_size) if square_size is not None else None
 
         elif type(obj) is str:
             self.notation = obj
             self.coords = self.notation_to_coords(obj)
             self.idx = self.coords_to_idx(self.coords)
-            self.pcoords = self.coords_to_pixels(self.coords, square_size) if square_size is not None else None
 
         else:
             self.idx, self.coords, self.scoords = None, None, None
-    #
+
+        self.en_passant = en_passant
 
     def __eq__(self, other):
         if type(other) is self.__class__:
@@ -63,7 +61,5 @@ class Place:
             new_s += str(9 - int(char)) if char.isdigit() else char
         return new_s
 
-    @staticmethod
-    def coords_to_pixels(coords, square_size):
-        x, y = coords
-        return (x - 1) * square_size, (y -1) * square_size
+    def inverted(self):
+        return Place(63 - self.idx)
